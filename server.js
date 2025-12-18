@@ -31,13 +31,18 @@ const supabaseAdmin = createClient(
 );
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public'), {
-  etag: false,
-  lastModified: false,
-  setHeaders: (res) => {
-    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-  }
-}));
+
+// Static files are handled by Vercel in production
+// In development, you may want to use express.static
+if (process.env.NODE_ENV !== 'production') {
+  app.use(express.static(path.join(__dirname, 'public'), {
+    etag: false,
+    lastModified: false,
+    setHeaders: (res) => {
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    }
+  }));
+}
 
 // Middleware to verify JWT token from Supabase
 const authenticateUser = async (req, res, next) => {
