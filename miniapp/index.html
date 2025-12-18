@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#bd00ff">
+  <title>World Pay - WLD Payments & History</title>
+
+  <!-- World App MiniKit SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.9.9/dist/minikit.js"></script>
+
+  <!-- IDKit for World ID verification -->
+  <script src="https://cdn.jsdelivr.net/npm/@worldcoin/idkit@1.0.0/dist/idkit.js"></script>
+
+  <!-- App Configuration -->
+  <script src="config.js"></script>
+
+  <link rel="stylesheet" href="styles/app.css">
+</head>
+<body>
+  <!-- App Container -->
+  <div id="app">
+
+    <!-- Sign In Screen -->
+    <div id="signInScreen" class="screen active">
+      <div class="screen-content">
+        <div class="hero">
+          <div class="logo">🌍</div>
+          <h1>World Pay</h1>
+          <p class="subtitle">Secure payments with World ID</p>
+        </div>
+
+        <div class="features">
+          <div class="feature">
+            <span class="feature-icon">🔐</span>
+            <span class="feature-text">World ID Authentication</span>
+          </div>
+          <div class="feature">
+            <span class="feature-icon">💎</span>
+            <span class="feature-text">Pay with Worldcoin (WLD)</span>
+          </div>
+          <div class="feature">
+            <span class="feature-icon">📊</span>
+            <span class="feature-text">Transaction History</span>
+          </div>
+        </div>
+
+        <button id="signInBtn" class="btn btn-primary btn-large">
+          Sign in with World ID
+        </button>
+
+        <div id="signInError" class="error-message hidden"></div>
+      </div>
+    </div>
+
+    <!-- Dashboard Screen -->
+    <div id="dashboardScreen" class="screen">
+      <div class="screen-content">
+        <div class="header">
+          <div class="user-info">
+            <div class="avatar">
+              <span class="avatar-icon">👤</span>
+            </div>
+            <div class="user-details">
+              <div class="user-name">World ID User</div>
+              <div class="user-id" id="userNullifier">Verified Human</div>
+            </div>
+          </div>
+          <button id="logoutBtn" class="btn-icon">
+            <span>🚪</span>
+          </button>
+        </div>
+
+        <div class="balance-card">
+          <div class="balance-label">Available Balance</div>
+          <div class="balance-amount" id="balanceAmount">Loading...</div>
+          <div class="balance-currency">WLD</div>
+        </div>
+
+        <div class="action-buttons">
+          <button id="payBtn" class="btn btn-primary">
+            💸 Pay with WLD
+          </button>
+          <button id="historyBtn" class="btn btn-secondary">
+            📜 View History
+          </button>
+        </div>
+
+        <div class="quick-stats">
+          <div class="stat">
+            <div class="stat-value" id="totalTransactions">0</div>
+            <div class="stat-label">Total Payments</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" id="totalSpent">0</div>
+            <div class="stat-label">Total Spent (WLD)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment Screen -->
+    <div id="paymentScreen" class="screen">
+      <div class="screen-content">
+        <button id="backFromPaymentBtn" class="btn-back">← Back</button>
+
+        <h2>Send Payment</h2>
+
+        <div class="payment-form">
+          <div class="form-group">
+            <label>Amount (WLD)</label>
+            <input type="number" id="paymentAmount" placeholder="10.00" step="0.01" min="0.01">
+          </div>
+
+          <div class="form-group">
+            <label>Recipient Address</label>
+            <input type="text" id="recipientAddress" placeholder="0x..." readonly>
+            <small class="form-hint">Merchant wallet address</small>
+          </div>
+
+          <div class="form-group">
+            <label>Description (optional)</label>
+            <input type="text" id="paymentDescription" placeholder="Payment for...">
+          </div>
+
+          <div class="network-selector">
+            <label>Network</label>
+            <div class="radio-group">
+              <label class="radio-label">
+                <input type="radio" name="network" value="world-chain" checked>
+                <span>World Chain (Recommended)</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="network" value="optimism">
+                <span>Optimism</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="payment-summary">
+            <div class="summary-row">
+              <span>Amount</span>
+              <span id="summaryAmount">0 WLD</span>
+            </div>
+            <div class="summary-row">
+              <span>Network Fee</span>
+              <span class="text-success">FREE</span>
+            </div>
+            <div class="summary-row summary-total">
+              <span>Total</span>
+              <span id="summaryTotal">0 WLD</span>
+            </div>
+          </div>
+
+          <button id="confirmPaymentBtn" class="btn btn-primary btn-large">
+            Confirm Payment
+          </button>
+        </div>
+
+        <div id="paymentStatus" class="status-message hidden"></div>
+      </div>
+    </div>
+
+    <!-- History Screen -->
+    <div id="historyScreen" class="screen">
+      <div class="screen-content">
+        <button id="backFromHistoryBtn" class="btn-back">← Back</button>
+
+        <h2>Transaction History</h2>
+
+        <div class="filter-tabs">
+          <button class="tab active" data-filter="all">All</button>
+          <button class="tab" data-filter="success">Success</button>
+          <button class="tab" data-filter="pending">Pending</button>
+          <button class="tab" data-filter="failed">Failed</button>
+        </div>
+
+        <div id="transactionList" class="transaction-list">
+          <!-- Transactions will be populated here -->
+        </div>
+
+        <div id="emptyState" class="empty-state hidden">
+          <span class="empty-icon">📭</span>
+          <p>No transactions yet</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="loading-overlay hidden">
+    <div class="spinner"></div>
+    <p id="loadingText">Processing...</p>
+  </div>
+
+  <script src="lib/worldapp.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

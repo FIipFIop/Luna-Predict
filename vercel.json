@@ -12,6 +12,10 @@
   ],
   "routes": [
     {
+      "src": "/miniapp/(.*)",
+      "dest": "/miniapp/$1"
+    },
+    {
       "src": "/public/(.*)",
       "dest": "/public/$1"
     },
