@@ -2,8 +2,20 @@
   "version": 2,
   "rewrites": [
     {
+      "source": "/miniapp",
+      "destination": "/miniapp/index.html"
+    },
+    {
+      "source": "/miniapp/",
+      "destination": "/miniapp/index.html"
+    },
+    {
       "source": "/api/:path*",
       "destination": "/server.js"
+    },
+    {
+      "source": "/",
+      "destination": "/public/index.html"
     }
   ],
   "headers": [
