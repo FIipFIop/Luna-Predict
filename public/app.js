@@ -36,11 +36,16 @@ const authSubmitBtn = $('authSubmitBtn');
 const authToggleText = $('authToggleText');
 const authToggleLink = $('authToggleLink');
 const authError = $('authError');
+const walletAuthBtn = $('walletAuthBtn');
 
 const paymentModal = $('paymentModal');
+const paymentMethodSelect = $('paymentMethodSelect');
+const selectWldBtn = $('selectWldBtn');
+const selectSolBtn = $('selectSolBtn');
 const paymentStep1 = $('paymentStep1');
 const paymentStep2 = $('paymentStep2');
 const paymentStep3 = $('paymentStep3');
+const backToMethodsBtn = $('backToMethodsBtn');
 const senderWallet = $('senderWallet');
 const initPaymentBtn = $('initPaymentBtn');
 const receiverWallet = $('receiverWallet');
@@ -52,6 +57,19 @@ const closePaymentBtn = $('closePaymentBtn');
 const paymentTimer = $('paymentTimer');
 const paymentError = $('paymentError');
 const copyWalletBtn = $('copyWalletBtn');
+// WLD payment elements
+const wldPaymentStep1 = $('wldPaymentStep1');
+const wldPaymentStep2 = $('wldPaymentStep2');
+const backToMethodsBtn2 = $('backToMethodsBtn2');
+const wldFromAddress = $('wldFromAddress');
+const wldNetwork = $('wldNetwork');
+const initWldPaymentBtn = $('initWldPaymentBtn');
+const wldReceiverAddress = $('wldReceiverAddress');
+const wldNetworkDisplay = $('wldNetworkDisplay');
+const wldTxHash = $('wldTxHash');
+const verifyWldPaymentBtn = $('verifyWldPaymentBtn');
+const cancelWldPaymentBtn = $('cancelWldPaymentBtn');
+const copyWldAddressBtn = $('copyWldAddressBtn');
 
 const userInfo = $('userInfo');
 const userCreditsEl = $('userCredits');
@@ -230,15 +248,105 @@ logoutBtn.addEventListener('click', async () => {
   }
 });
 
+// World App Wallet Authentication (SIWE)
+walletAuthBtn.addEventListener('click', async () => {
+  if (!window.MiniKit) {
+    authError.textContent = 'Please open this app in World App to use wallet authentication';
+    return;
+  }
+
+  try {
+    authError.textContent = '';
+    walletAuthBtn.disabled = true;
+    walletAuthBtn.textContent = 'Requesting nonce...';
+
+    // Step 1: Get nonce from backend
+    const nonceRes = await fetch('/api/auth/nonce', {
+      credentials: 'include'
+    });
+
+    if (!nonceRes.ok) {
+      throw new Error('Failed to get nonce from server');
+    }
+
+    const { nonce } = await nonceRes.json();
+    console.log('Nonce received:', nonce);
+
+    walletAuthBtn.textContent = 'Sign with wallet...';
+
+    // Step 2: Request wallet signature via MiniKit
+    const { commandPayload, finalPayload } = await MiniKit.commandsAsync.walletAuth({
+      nonce: nonce,
+      requestId: '0',
+      expirationTime: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000),
+      notBefore: new Date(new Date().getTime() - 24 * 60 * 60 * 1000),
+      statement: 'Sign in to Luna Predict - AI-powered crypto chart analysis'
+    });
+
+    if (finalPayload.status === 'error') {
+      throw new Error('Signature request rejected');
+    }
+
+    walletAuthBtn.textContent = 'Verifying...';
+
+    // Step 3: Send to backend for verification
+    const loginRes = await fetch('/api/auth/wallet-login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        payload: finalPayload,
+        nonce: nonce
+      })
+    });
+
+    const loginData = await loginRes.json();
+
+    if (!loginRes.ok || !loginData.isValid) {
+      throw new Error(loginData.error || 'Login verification failed');
+    }
+
+    // Step 4: Set session in Supabase client (if session token provided)
+    if (loginData.session && loginData.session.properties) {
+      const hashed_token = loginData.session.properties.hashed_token;
+      // For magic link, we need to exchange it for session
+      // This is a simplified approach - in production you'd handle the magic link properly
+      console.log('Login successful:', loginData);
+    }
+
+    // Step 5: Success - reload user data
+    currentUser = { id: loginData.userId };
+    await loadUserData();
+    showMainApp();
+
+    walletAuthBtn.textContent = 'Sign in with World App';
+
+  } catch (error) {
+    console.error('Wallet auth error:', error);
+    authError.textContent = error.message || 'Wallet authentication failed';
+    walletAuthBtn.textContent = 'Sign in with World App';
+  } finally {
+    walletAuthBtn.disabled = false;
+  }
+});
+
 // ============= PAYMENT =============
 
 buyCreditsBtn.addEventListener('click', () => {
   paymentModal.classList.add('active');
-  paymentStep1.style.display = 'block';
+  // Show payment method selector
+  paymentMethodSelect.style.display = 'block';
+  paymentStep1.style.display = 'none';
   paymentStep2.style.display = 'none';
   paymentStep3.style.display = 'none';
+  wldPaymentStep1.style.display = 'none';
+  wldPaymentStep2.style.display = 'none';
   paymentError.textContent = '';
   senderWallet.value = '';
+  wldFromAddress.value = '';
+  wldTxHash.value = '';
 });
 
 closePaymentBtn.addEventListener('click', () => {
@@ -257,6 +365,148 @@ cancelPaymentBtn.addEventListener('click', () => {
   if (paymentVerificationInterval) {
     clearInterval(paymentVerificationInterval);
     paymentVerificationInterval = null;
+  }
+});
+
+// Payment method selection
+selectWldBtn.addEventListener('click', () => {
+  paymentMethodSelect.style.display = 'none';
+  wldPaymentStep1.style.display = 'block';
+});
+
+selectSolBtn.addEventListener('click', () => {
+  paymentMethodSelect.style.display = 'none';
+  paymentStep1.style.display = 'block';
+});
+
+// Back to payment methods
+backToMethodsBtn.addEventListener('click', () => {
+  paymentStep1.style.display = 'none';
+  paymentMethodSelect.style.display = 'block';
+});
+
+backToMethodsBtn2.addEventListener('click', () => {
+  wldPaymentStep1.style.display = 'none';
+  paymentMethodSelect.style.display = 'block';
+});
+
+// WLD Payment Flow
+let currentWldPaymentId = null;
+
+initWldPaymentBtn.addEventListener('click', async () => {
+  const fromAddr = wldFromAddress.value.trim();
+  const network = wldNetwork.value;
+
+  if (!fromAddr) {
+    paymentError.textContent = 'Please enter your wallet address';
+    return;
+  }
+
+  paymentError.textContent = '';
+  initWldPaymentBtn.disabled = true;
+  initWldPaymentBtn.textContent = 'Initializing...';
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const response = await fetch('/api/payment/worldcoin/init', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        fromAddress: fromAddr,
+        network: network
+      })
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      currentWldPaymentId = data.paymentId;
+      wldReceiverAddress.textContent = data.toAddress;
+      wldNetworkDisplay.textContent = data.network === 'world-chain' ? 'World Chain' : 'Optimism';
+
+      wldPaymentStep1.style.display = 'none';
+      wldPaymentStep2.style.display = 'block';
+    } else {
+      paymentError.textContent = data.error || 'Payment initialization failed';
+    }
+  } catch (err) {
+    paymentError.textContent = 'Network error. Please try again.';
+  } finally {
+    initWldPaymentBtn.disabled = false;
+    initWldPaymentBtn.textContent = 'Continue';
+  }
+});
+
+cancelWldPaymentBtn.addEventListener('click', () => {
+  wldPaymentStep1.style.display = 'block';
+  wldPaymentStep2.style.display = 'none';
+  paymentError.textContent = '';
+  wldTxHash.value = '';
+});
+
+copyWldAddressBtn.addEventListener('click', () => {
+  const address = wldReceiverAddress.textContent;
+  navigator.clipboard.writeText(address).then(() => {
+    const originalText = copyWldAddressBtn.textContent;
+    copyWldAddressBtn.textContent = 'Copied!';
+    setTimeout(() => {
+      copyWldAddressBtn.textContent = originalText;
+    }, 2000);
+  });
+});
+
+verifyWldPaymentBtn.addEventListener('click', async () => {
+  const txHash = wldTxHash.value.trim();
+
+  if (!txHash) {
+    paymentError.textContent = 'Please enter the transaction hash';
+    return;
+  }
+
+  paymentError.textContent = '';
+  verifyWldPaymentBtn.disabled = true;
+  verifyWldPaymentBtn.textContent = 'Verifying...';
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const response = await fetch('/api/payment/worldcoin/verify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        paymentId: currentWldPaymentId,
+        transactionHash: txHash
+      })
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.status === 'confirmed') {
+      // Payment successful!
+      userCredits += data.credits;
+      updateUserUI();
+
+      paymentModal.classList.remove('active');
+      wldPaymentStep2.style.display = 'none';
+      paymentMethodSelect.style.display = 'block';
+      wldTxHash.value = '';
+
+      alert(`Payment confirmed! ${data.credits} credits added to your account.`);
+    } else if (data.status === 'pending' || data.status === 'processing') {
+      paymentError.textContent = 'Transaction is being processed. Please wait a moment and try again.';
+    } else {
+      paymentError.textContent = data.error || 'Payment verification failed';
+    }
+  } catch (err) {
+    paymentError.textContent = 'Network error. Please try again.';
+  } finally {
+    verifyWldPaymentBtn.disabled = false;
+    verifyWldPaymentBtn.textContent = 'Verify Payment';
   }
 });
 

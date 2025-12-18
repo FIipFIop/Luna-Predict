@@ -12,6 +12,7 @@
 <link rel="apple-touch-icon" href="/icon-192.png">
 <title>Crypto Chart Analyzer</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.9.9/dist/minikit.js"></script>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -33,6 +34,12 @@
 <input type="text" id="authFullName" placeholder="John Doe">
 </div>
 <button type="submit" id="authSubmitBtn" class="auth-btn">Login</button>
+<div class="auth-divider">
+<span>OR</span>
+</div>
+<button type="button" id="walletAuthBtn" class="wallet-auth-btn">
+Sign in with World App
+</button>
 <p class="auth-toggle">
 <span id="authToggleText">Don't have an account?</span>
 <a href="#" id="authToggleLink">Sign up</a>
@@ -45,14 +52,64 @@
 <!-- Payment Modal -->
 <div id="paymentModal" class="modal">
 <div class="modal-content">
-<h2>Purchase Analysis Credit</h2>
-<div id="paymentStep1" class="payment-step">
+<h2>Purchase Analysis Credits</h2>
+<div id="paymentMethodSelect" class="payment-step">
+<p class="payment-info">Buy credits to analyze charts:</p>
+<div class="payment-methods">
+<button id="selectWldBtn" class="payment-method-btn wld-method">
+<div class="payment-method-info">
+<div class="payment-method-name">Buy with Worldcoin</div>
+<div class="payment-method-desc">10 WLD = 5 Analysis Credits</div>
+<div class="payment-method-badge">Best for World App Users</div>
+</div>
+</button>
+<button id="selectSolBtn" class="payment-method-btn sol-method">
+<div class="payment-method-info">
+<div class="payment-method-name">Buy with Solana</div>
+<div class="payment-method-desc">0.01 SOL = 1 Analysis Credit</div>
+</div>
+</button>
+</div>
+</div>
+<div id="paymentStep1" class="payment-step" style="display:none;">
+<button id="backToMethodsBtn" class="back-btn">← Back to payment methods</button>
 <p class="payment-info">Cost: <strong id="paymentAmount">0.01 SOL</strong></p>
 <div class="form-group">
 <label for="senderWallet">Your Solana Wallet Address</label>
 <input type="text" id="senderWallet" required placeholder="Enter your wallet address">
 </div>
 <button id="initPaymentBtn" class="payment-btn">Check Balance & Continue</button>
+</div>
+<div id="wldPaymentStep1" class="payment-step" style="display:none;">
+<button id="backToMethodsBtn2" class="back-btn">← Back to payment methods</button>
+<p class="payment-info">Send <strong>10 WLD</strong> to receive <strong>5 credits</strong></p>
+<div class="form-group">
+<label for="wldFromAddress">Your Wallet Address</label>
+<input type="text" id="wldFromAddress" required placeholder="0x...">
+</div>
+<div class="form-group">
+<label for="wldNetwork">Network</label>
+<select id="wldNetwork">
+<option value="world-chain" selected>World Chain (Recommended)</option>
+<option value="optimism">Optimism</option>
+</select>
+</div>
+<button id="initWldPaymentBtn" class="payment-btn">Continue</button>
+</div>
+<div id="wldPaymentStep2" class="payment-step" style="display:none;">
+<p class="payment-info">Send exactly <strong>10 WLD</strong> to:</p>
+<div class="wallet-display">
+<code id="wldReceiverAddress"></code>
+<button id="copyWldAddressBtn" class="copy-btn">Copy</button>
+</div>
+<p class="payment-network">Network: <strong id="wldNetworkDisplay"></strong></p>
+<p class="payment-warning">⚠️ You have 10 minutes to complete the transaction</p>
+<div class="form-group">
+<label for="wldTxHash">Transaction Hash (after sending)</label>
+<input type="text" id="wldTxHash" placeholder="0x...">
+</div>
+<button id="verifyWldPaymentBtn" class="payment-btn">Verify Payment</button>
+<button id="cancelWldPaymentBtn" class="payment-btn secondary">Cancel</button>
 </div>
 <div id="paymentStep2" class="payment-step" style="display:none;">
 <p class="payment-info">Send exactly <strong id="exactAmount">0.01 SOL</strong> to:</p>
