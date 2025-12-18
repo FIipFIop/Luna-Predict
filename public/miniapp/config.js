@@ -14,7 +14,7 @@ const WORLDPAY_CONFIG = {
 
   // Payment Configuration
   payment: {
-    merchantAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb', // ⚠️ INSERT YOUR WALLET ADDRESS
+    merchantAddress: '0xc7ef2767a8226c0afaf70e328c6922420ad8ab2a', // Your Ethereum wallet for receiving WLD
     defaultNetwork: 'world-chain', // 'world-chain' or 'optimism'
   },
 
