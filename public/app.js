@@ -25,22 +25,35 @@ tg.enableClosingConfirmation();
 // Initialize MiniKit for World App
 let minikitInitialized = false;
 async function initMiniKit() {
-  if (minikitInitialized || !window.MiniKit) return;
+  if (minikitInitialized) return true;
+
+  // Wait for MiniKit to be available
+  let retries = 0;
+  while (!window.MiniKit && retries < 20) {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    retries++;
+  }
+
+  if (!window.MiniKit) {
+    console.error('❌ MiniKit SDK not loaded after waiting');
+    return false;
+  }
+
   try {
     await MiniKit.install();
     minikitInitialized = true;
     console.log('✅ MiniKit initialized');
+    return true;
   } catch (error) {
     console.error('❌ MiniKit initialization failed:', error);
+    return false;
   }
 }
 
 // Initialize MiniKit when page loads
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initMiniKit);
-} else {
-  initMiniKit();
-}
+window.addEventListener('load', () => {
+  setTimeout(initMiniKit, 500);
+});
 
 const $ = id => document.getElementById(id);
 
@@ -276,8 +289,12 @@ walletAuthBtn.addEventListener('click', async () => {
 
     // Initialize MiniKit if not already done
     if (!minikitInitialized) {
-      walletAuthBtn.textContent = 'Initializing...';
-      await initMiniKit();
+      walletAuthBtn.textContent = 'Initializing MiniKit...';
+      const initialized = await initMiniKit();
+
+      if (!initialized) {
+        throw new Error('MiniKit SDK failed to load. Please make sure you are using World App and have a stable internet connection.');
+      }
     }
 
     if (!window.MiniKit || !minikitInitialized) {
