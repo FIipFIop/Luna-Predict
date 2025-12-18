@@ -31,7 +31,12 @@
       "mcp__supabase__list_tables",
       "mcp__supabase__apply_migration",
       "Bash(vercel --version:*)",
-      "Bash(vercel --prod:*)"
+      "Bash(vercel --prod:*)",
+      "mcp__world__SearchWorldDocumentation",
+      "Bash(powershell -Command \"\\(Invoke-WebRequest -Uri ''https://luna-predict.vercel.app/'' -UseBasicParsing\\).StatusCode\")",
+      "Bash(powershell -Command \"\\(Invoke-WebRequest -Uri ''https://luna-predict.vercel.app/miniapp/'' -UseBasicParsing\\).StatusCode\")",
+      "Bash(powershell -Command \"$r = Invoke-WebRequest -Uri ''https://luna-predict.vercel.app/miniapp/'' -UseBasicParsing; $r.StatusCode\")",
+      "WebFetch(domain:luna-predict.vercel.app)"
     ]
   },
   "enableAllProjectMcpServers": true,
