@@ -22,6 +22,26 @@ tg.ready();
 tg.expand();
 tg.enableClosingConfirmation();
 
+// Initialize MiniKit for World App
+let minikitInitialized = false;
+async function initMiniKit() {
+  if (minikitInitialized || !window.MiniKit) return;
+  try {
+    await MiniKit.install();
+    minikitInitialized = true;
+    console.log('✅ MiniKit initialized');
+  } catch (error) {
+    console.error('❌ MiniKit initialization failed:', error);
+  }
+}
+
+// Initialize MiniKit when page loads
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initMiniKit);
+} else {
+  initMiniKit();
+}
+
 const $ = id => document.getElementById(id);
 
 // DOM elements
@@ -250,14 +270,20 @@ logoutBtn.addEventListener('click', async () => {
 
 // World App Wallet Authentication (SIWE)
 walletAuthBtn.addEventListener('click', async () => {
-  if (!window.MiniKit) {
-    authError.textContent = 'Please open this app in World App to use wallet authentication';
-    return;
-  }
-
   try {
     authError.textContent = '';
     walletAuthBtn.disabled = true;
+
+    // Initialize MiniKit if not already done
+    if (!minikitInitialized) {
+      walletAuthBtn.textContent = 'Initializing...';
+      await initMiniKit();
+    }
+
+    if (!window.MiniKit || !minikitInitialized) {
+      throw new Error('Please open this app in World App to use wallet authentication');
+    }
+
     walletAuthBtn.textContent = 'Requesting nonce...';
 
     // Step 1: Get nonce from backend
