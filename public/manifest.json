@@ -1,11 +1,11 @@
 {
-  "name": "Crypto Chart Analyzer",
-  "short_name": "Chart AI",
-  "description": "AI-powered crypto chart analysis with trading recommendations",
+  "name": "Luna Predict",
+  "short_name": "Luna",
+  "description": "AI-powered crypto chart analysis for World App",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "background_color": "#1a1a2e",
+  "theme_color": "#bd00ff",
   "orientation": "portrait-primary",
   "icons": [
     {
