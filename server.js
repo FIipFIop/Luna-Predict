@@ -196,6 +196,126 @@ app.get('/api/auth/nonce', (req, res) => {
   }
 });
 
+// World ID Verification - Login with World ID proof
+app.post('/api/auth/world-id-verify', async (req, res) => {
+  try {
+    const { proof, action, signal } = req.body;
+
+    if (!proof || !proof.merkle_root || !proof.nullifier_hash || !proof.proof) {
+      return res.status(400).json({ error: 'Invalid proof data' });
+    }
+
+    // Verify proof with Worldcoin API
+    const verifyResponse = await fetch('https://developer.worldcoin.org/api/v1/verify/' + process.env.WORLD_ID_APP_ID || 'app_681a53f34457fbb76319aac9d5258f5c', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        merkle_root: proof.merkle_root,
+        nullifier_hash: proof.nullifier_hash,
+        proof: proof.proof,
+        credential_type: proof.credential_type || 'orb',
+        action: action || 'login',
+        signal: signal || ''
+      })
+    });
+
+    const verifyData = await verifyResponse.json();
+
+    if (!verifyResponse.ok || !verifyData.success) {
+      return res.status(400).json({
+        error: 'World ID verification failed',
+        details: verifyData.detail || verifyData.code
+      });
+    }
+
+    // Use nullifier_hash as unique identifier
+    const nullifierHash = proof.nullifier_hash;
+
+    // Check if user exists
+    let { data: existingUser } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('email', `${nullifierHash}@worldid.user`)
+      .single();
+
+    let userId;
+    let isNewUser = false;
+
+    if (!existingUser) {
+      // Create new user
+      const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email: `${nullifierHash}@worldid.user`,
+        email_confirm: true,
+        user_metadata: {
+          nullifier_hash: nullifierHash,
+          auth_method: 'world_id',
+          verified_human: true
+        }
+      });
+
+      if (createError || !newUser.user) {
+        return res.status(500).json({ error: 'Failed to create user' });
+      }
+
+      userId = newUser.user.id;
+      isNewUser = true;
+
+      // Initialize user credits
+      await supabase.from('user_credits').insert({
+        user_id: userId,
+        credits: 0
+      });
+
+      // Create user profile
+      await supabase.from('user_profiles').insert({
+        id: userId,
+        email: `${nullifierHash}@worldid.user`,
+        full_name: `World ID User`
+      });
+
+      // Store verification in world_id_verifications table
+      await supabase.from('world_id_verifications').insert({
+        user_id: userId,
+        nullifier_hash: nullifierHash,
+        merkle_root: proof.merkle_root,
+        proof: proof.proof,
+        verification_level: proof.credential_type || 'orb',
+        action: action || 'login'
+      });
+    } else {
+      userId = existingUser.id;
+    }
+
+    // Generate session token
+    const { data: session, error: sessionError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: `${nullifierHash}@worldid.user`
+    });
+
+    if (sessionError) {
+      return res.status(500).json({ error: 'Failed to create session' });
+    }
+
+    res.json({
+      success: true,
+      isNewUser,
+      userId,
+      nullifierHash,
+      session: session,
+      message: isNewUser ? 'Welcome to Luna Predict!' : 'Welcome back!'
+    });
+
+  } catch (error) {
+    console.error('World ID verification error:', error);
+    res.status(500).json({
+      error: 'Verification failed',
+      message: error.message
+    });
+  }
+});
+
 // Wallet Authentication (SIWE) - Primary login method for World App
 app.post('/api/auth/wallet-login', async (req, res) => {
   try {

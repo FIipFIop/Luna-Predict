@@ -22,38 +22,12 @@ tg.ready();
 tg.expand();
 tg.enableClosingConfirmation();
 
-// Initialize MiniKit for World App
-let minikitInitialized = false;
-async function initMiniKit() {
-  if (minikitInitialized) return true;
-
-  // Wait for MiniKit to be available
-  let retries = 0;
-  while (!window.MiniKit && retries < 20) {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    retries++;
-  }
-
-  if (!window.MiniKit) {
-    console.error('❌ MiniKit SDK not loaded after waiting');
-    return false;
-  }
-
-  try {
-    await MiniKit.install();
-    minikitInitialized = true;
-    console.log('✅ MiniKit initialized');
-    return true;
-  } catch (error) {
-    console.error('❌ MiniKit initialization failed:', error);
-    return false;
-  }
-}
-
-// Initialize MiniKit when page loads
-window.addEventListener('load', () => {
-  setTimeout(initMiniKit, 500);
-});
+// World ID Configuration
+const WORLD_ID_CONFIG = {
+  app_id: 'app_681a53f34457fbb76319aac9d5258f5c',
+  action: 'login',
+  signal: '', // Optional: can be used to prevent replay attacks
+};
 
 const $ = id => document.getElementById(id);
 
@@ -281,96 +255,77 @@ logoutBtn.addEventListener('click', async () => {
   }
 });
 
-// World App Wallet Authentication (SIWE)
+// World ID Authentication with IDKit
 walletAuthBtn.addEventListener('click', async () => {
+  if (!window.IDKit) {
+    authError.textContent = 'World ID SDK not loaded. Please refresh the page.';
+    return;
+  }
+
   try {
     authError.textContent = '';
     walletAuthBtn.disabled = true;
+    walletAuthBtn.textContent = 'Opening World ID...';
 
-    // Initialize MiniKit if not already done
-    if (!minikitInitialized) {
-      walletAuthBtn.textContent = 'Initializing MiniKit...';
-      const initialized = await initMiniKit();
+    // Initialize and open IDKit
+    IDKit.init({
+      app_id: WORLD_ID_CONFIG.app_id,
+      action: WORLD_ID_CONFIG.action,
+      signal: WORLD_ID_CONFIG.signal,
+      onSuccess: async (proof) => {
+        try {
+          walletAuthBtn.textContent = 'Verifying...';
+          console.log('World ID proof received:', proof);
 
-      if (!initialized) {
-        throw new Error('MiniKit SDK failed to load. Please make sure you are using World App and have a stable internet connection.');
-      }
-    }
+          // Send proof to backend for verification
+          const verifyRes = await fetch('/api/auth/world-id-verify', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+              proof: proof,
+              action: WORLD_ID_CONFIG.action,
+              signal: WORLD_ID_CONFIG.signal
+            })
+          });
 
-    if (!window.MiniKit || !minikitInitialized) {
-      throw new Error('Please open this app in World App to use wallet authentication');
-    }
+          const verifyData = await verifyRes.json();
 
-    walletAuthBtn.textContent = 'Requesting nonce...';
+          if (!verifyRes.ok || !verifyData.success) {
+            throw new Error(verifyData.error || 'Verification failed');
+          }
 
-    // Step 1: Get nonce from backend
-    const nonceRes = await fetch('/api/auth/nonce', {
-      credentials: 'include'
-    });
+          // Success - reload user data
+          currentUser = { id: verifyData.userId };
+          await loadUserData();
+          showMainApp();
+          walletAuthBtn.textContent = 'Sign in with World ID';
 
-    if (!nonceRes.ok) {
-      throw new Error('Failed to get nonce from server');
-    }
-
-    const { nonce } = await nonceRes.json();
-    console.log('Nonce received:', nonce);
-
-    walletAuthBtn.textContent = 'Sign with wallet...';
-
-    // Step 2: Request wallet signature via MiniKit
-    const { commandPayload, finalPayload } = await MiniKit.commandsAsync.walletAuth({
-      nonce: nonce,
-      requestId: '0',
-      expirationTime: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000),
-      notBefore: new Date(new Date().getTime() - 24 * 60 * 60 * 1000),
-      statement: 'Sign in to Luna Predict - AI-powered crypto chart analysis'
-    });
-
-    if (finalPayload.status === 'error') {
-      throw new Error('Signature request rejected');
-    }
-
-    walletAuthBtn.textContent = 'Verifying...';
-
-    // Step 3: Send to backend for verification
-    const loginRes = await fetch('/api/auth/wallet-login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+        } catch (error) {
+          console.error('World ID verification error:', error);
+          authError.textContent = error.message || 'Verification failed';
+          walletAuthBtn.textContent = 'Sign in with World ID';
+        } finally {
+          walletAuthBtn.disabled = false;
+        }
       },
-      credentials: 'include',
-      body: JSON.stringify({
-        payload: finalPayload,
-        nonce: nonce
-      })
+      onError: (error) => {
+        console.error('World ID error:', error);
+        authError.textContent = error.message || 'World ID verification failed';
+        walletAuthBtn.textContent = 'Sign in with World ID';
+        walletAuthBtn.disabled = false;
+      }
     });
 
-    const loginData = await loginRes.json();
-
-    if (!loginRes.ok || !loginData.isValid) {
-      throw new Error(loginData.error || 'Login verification failed');
-    }
-
-    // Step 4: Set session in Supabase client (if session token provided)
-    if (loginData.session && loginData.session.properties) {
-      const hashed_token = loginData.session.properties.hashed_token;
-      // For magic link, we need to exchange it for session
-      // This is a simplified approach - in production you'd handle the magic link properly
-      console.log('Login successful:', loginData);
-    }
-
-    // Step 5: Success - reload user data
-    currentUser = { id: loginData.userId };
-    await loadUserData();
-    showMainApp();
-
-    walletAuthBtn.textContent = 'Sign in with World App';
+    // Open the IDKit modal
+    IDKit.open();
 
   } catch (error) {
-    console.error('Wallet auth error:', error);
-    authError.textContent = error.message || 'Wallet authentication failed';
-    walletAuthBtn.textContent = 'Sign in with World App';
-  } finally {
+    console.error('World ID init error:', error);
+    authError.textContent = error.message || 'Failed to open World ID';
+    walletAuthBtn.textContent = 'Sign in with World ID';
     walletAuthBtn.disabled = false;
   }
 });
