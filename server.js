@@ -5,7 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
-import { verifySiweMessage } from '@worldcoin/minikit-js';
+import { SiweMessage } from 'siwe';
 import cookieParser from 'cookie-parser';
 
 dotenv.config();
@@ -215,9 +215,21 @@ app.post('/api/auth/wallet-login', async (req, res) => {
     }
 
     // Verify SIWE message signature
-    const validMessage = await verifySiweMessage(payload, nonce);
+    try {
+      const siweMessage = new SiweMessage(payload.message || payload);
+      const fields = await siweMessage.verify({
+        signature: payload.signature,
+        nonce: nonce
+      });
 
-    if (!validMessage.isValid) {
+      if (!fields.success) {
+        return res.status(400).json({
+          error: 'Invalid signature',
+          isValid: false
+        });
+      }
+    } catch (error) {
+      console.error('SIWE verification error:', error);
       return res.status(400).json({
         error: 'Invalid signature',
         isValid: false
@@ -225,7 +237,7 @@ app.post('/api/auth/wallet-login', async (req, res) => {
     }
 
     // Extract wallet address from payload
-    const walletAddress = payload.address.toLowerCase();
+    const walletAddress = (payload.address || payload.message?.address).toLowerCase();
 
     // Check if user exists
     let { data: existingUser } = await supabase
