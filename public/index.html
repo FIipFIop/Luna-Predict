@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="AI-powered crypto chart analysis with trading recommendations, entry, stop loss, and take profit levels">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Chart AI">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<title>Crypto Chart Analyzer</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<!-- Auth Modal -->
+<div id="authModal" class="modal">
+<div class="modal-content">
+<h2 id="authTitle">Login</h2>
+<form id="authForm">
+<div class="form-group">
+<label for="authEmail">Email</label>
+<input type="email" id="authEmail" required placeholder="your@email.com">
+</div>
+<div class="form-group">
+<label for="authPassword">Password</label>
+<input type="password" id="authPassword" required placeholder="••••••••" minlength="6">
+</div>
+<div class="form-group" id="fullNameGroup" style="display:none;">
+<label for="authFullName">Full Name (optional)</label>
+<input type="text" id="authFullName" placeholder="John Doe">
+</div>
+<button type="submit" id="authSubmitBtn" class="auth-btn">Login</button>
+<p class="auth-toggle">
+<span id="authToggleText">Don't have an account?</span>
+<a href="#" id="authToggleLink">Sign up</a>
+</p>
+<div id="authError" class="auth-error"></div>
+</form>
+</div>
+</div>
+
+<!-- Payment Modal -->
+<div id="paymentModal" class="modal">
+<div class="modal-content">
+<h2>Purchase Analysis Credit</h2>
+<div id="paymentStep1" class="payment-step">
+<p class="payment-info">Cost: <strong id="paymentAmount">0.01 SOL</strong></p>
+<div class="form-group">
+<label for="senderWallet">Your Solana Wallet Address</label>
+<input type="text" id="senderWallet" required placeholder="Enter your wallet address">
+</div>
+<button id="initPaymentBtn" class="payment-btn">Check Balance & Continue</button>
+</div>
+<div id="paymentStep2" class="payment-step" style="display:none;">
+<p class="payment-info">Send exactly <strong id="exactAmount">0.01 SOL</strong> to:</p>
+<div class="wallet-display">
+<code id="receiverWallet"></code>
+<button id="copyWalletBtn" class="copy-btn">Copy</button>
+</div>
+<p class="payment-warning">⚠️ You have 2 minutes to complete the transaction</p>
+<button id="sentPaymentBtn" class="payment-btn">I've Sent the Payment</button>
+<button id="cancelPaymentBtn" class="payment-btn secondary">Cancel</button>
+</div>
+<div id="paymentStep3" class="payment-step" style="display:none;">
+<div class="payment-loader">
+<div class="loader"></div>
+<p>Verifying payment...</p>
+<p class="payment-timer">Time remaining: <span id="paymentTimer">2:00</span></p>
+</div>
+</div>
+<div id="paymentError" class="auth-error"></div>
+<button id="closePaymentBtn" class="close-modal">×</button>
+</div>
+</div>
+
+<div class="container">
+<header>
+<div class="header-content">
+<div>
+<h1>Crypto Chart Analyzer</h1>
+<p class="subtitle">AI-powered technical analysis for crypto trading</p>
+</div>
+<div class="user-info" id="userInfo" style="display:none;">
+<span class="credits-badge">Credits: <span id="userCredits">0</span></span>
+<button id="buyCreditsBtn" class="buy-btn">Buy Credits</button>
+<button id="logoutBtn" class="logout-btn">Logout</button>
+</div>
+</div>
+</header>
+<main>
+<div class="upload-section">
+<div class="input-group">
+<label for="timeframe">Timeframe</label>
+<select id="timeframe">
+<option value="auto" selected>🤖 Auto Detect (Recommended)</option>
+<option value="1m">1 Minute</option>
+<option value="5m">5 Minutes</option>
+<option value="15m">15 Minutes</option>
+<option value="30m">30 Minutes</option>
+<option value="1h">1 Hour</option>
+<option value="4h">4 Hours</option>
+<option value="1d">1 Day</option>
+<option value="1w">1 Week</option>
+<option value="1M">1 Month</option>
+</select>
+</div>
+<div id="timeframeConfirm" class="timeframe-confirm hidden">
+<p class="confirm-text">Detected timeframe: <strong id="detectedTimeframe"></strong></p>
+<div class="confirm-buttons">
+<button type="button" id="confirmTimeframeBtn" class="confirm-btn">✓ Correct</button>
+<button type="button" id="changeTimeframeBtn" class="confirm-btn secondary">Change</button>
+</div>
+</div>
+<div id="dropzone" class="dropzone">
+<input type="file" id="fileInput" accept="image/*" hidden>
+<input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
+<div class="dropzone-content">
+<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+<polyline points="17 8 12 3 7 8"></polyline>
+<line x1="12" y1="3" x2="12" y2="15"></line>
+</svg>
+<p class="dropzone-text">Drag & drop your chart image</p>
+<p class="dropzone-subtext">or click to browse</p>
+<div class="mobile-buttons">
+<button type="button" id="cameraBtn" class="mobile-btn">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+<circle cx="12" cy="13" r="4"></circle>
+</svg>
+Take Photo
+</button>
+<button type="button" id="galleryBtn" class="mobile-btn">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+<circle cx="8.5" cy="8.5" r="1.5"></circle>
+<polyline points="21 15 16 10 5 21"></polyline>
+</svg>
+Choose from Gallery
+</button>
+</div>
+<p class="dropzone-hint">PNG, JPG, WEBP up to 10MB • Works with Phantom, TradingView, exchanges</p>
+</div>
+<div id="preview" class="preview hidden">
+<img id="previewImg" src="" alt="Chart preview">
+<button id="removeBtn" class="remove-btn" type="button">×</button>
+</div>
+</div>
+<button id="analyzeBtn" class="analyze-btn" disabled>
+<span class="btn-text">Analyze Chart</span>
+<span class="btn-loader hidden"></span>
+</button>
+</div>
+<div id="results" class="results hidden">
+<div class="result-header"><h2>Analysis Results</h2></div>
+<div class="result-cards">
+<div class="card"><div class="card-label">Recommendation</div><div id="recommendation" class="card-value recommendation"></div></div>
+<div class="card"><div class="card-label">Certainty</div><div id="certainty" class="card-value certainty"></div></div>
+<div class="card"><div class="card-label">Risk/Reward</div><div id="riskReward" class="card-value"></div></div>
+<div class="card"><div class="card-label">Entry Price</div><div id="entryPrice" class="card-value"></div></div>
+<div class="card card-stop-loss"><div class="card-label">Stop Loss</div><div id="stopLoss" class="card-value stop-loss"></div></div>
+<div class="card card-take-profit"><div class="card-label">Take Profit</div><div id="takeProfit" class="card-value take-profit"></div></div>
+</div>
+<div class="report-card"><h3>Detailed Analysis Report</h3><div id="report" class="report-content"></div></div>
+</div>
+<div id="error" class="error hidden"></div>
+</main>
+<footer><p>Powered by OpenRouter AI • Not financial advice</p></footer>
+</div>
+<script src="app.js"></script>
+<script>
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-worker.js').then(()=>console.log('PWA ready')).catch(e=>console.log('SW error:',e));}
+</script>
+</body>
+</html>

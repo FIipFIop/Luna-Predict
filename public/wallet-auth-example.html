@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luna Predict - Wallet Authentication</title>
+    <script src="https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.0.0/dist/minikit.js"></script>
+    <style>
+        :root {
+            --luna-purple: #bd00ff;
+            --luna-purple-dark: #9900cc;
+            --luna-purple-light: #d94dff;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(189, 0, 255, 0.2);
+            border: 1px solid rgba(189, 0, 255, 0.1);
+        }
+        h1 {
+            color: var(--luna-purple);
+            margin-bottom: 5px;
+            font-size: 32px;
+            font-weight: 700;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        button {
+            background: var(--luna-purple);
+            color: white;
+            border: none;
+            padding: 16px 28px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 16px rgba(189, 0, 255, 0.3);
+        }
+        button:hover {
+            background: var(--luna-purple-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(189, 0, 255, 0.4);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background: #f0f0f0;
+            display: none;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            display: block;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            display: block;
+        }
+        .user-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e7f3ff;
+            border-radius: 8px;
+            display: none;
+        }
+        .user-info.show {
+            display: block;
+        }
+        .user-info p {
+            margin: 5px 0;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌙 Luna Predict</h1>
+        <p class="subtitle">AI-Powered Crypto Chart Analysis</p>
+
+        <button id="loginBtn" onclick="signInWithWallet()">
+            Sign In with Wallet
+        </button>
+
+        <div id="status" class="status"></div>
+        <div id="userInfo" class="user-info"></div>
+
+        <div style="margin-top: 30px; padding: 20px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 8px;">
+            <h4 style="margin: 0 0 10px 0; color: #856404;">⚠️ Risk Disclaimer</h4>
+            <p style="margin: 0; font-size: 13px; color: #856404; line-height: 1.6;">
+                <strong>Luna Predict provides AI-generated analysis for educational purposes only.</strong>
+                <br><br>
+                • <strong>Set your own Stop Loss and Take Profit levels</strong><br>
+                • We recommend a minimum 1% Take Profit<br>
+                • Never risk more than you can afford to lose<br>
+                • AI predictions are not financial advice<br>
+                • Past performance does not guarantee future results<br>
+                • Always do your own research (DYOR)
+            </p>
+        </div>
+    </div>
+
+    <script>
+        let userSession = null;
+
+        // Check if running in World App
+        function checkMiniKit() {
+            if (!window.MiniKit) {
+                showStatus('This app requires World App. Please open in World App.', 'error');
+                document.getElementById('loginBtn').disabled = true;
+                return false;
+            }
+            return true;
+        }
+
+        // Sign in with wallet using SIWE
+        async function signInWithWallet() {
+            if (!checkMiniKit()) return;
+
+            try {
+                showStatus('Requesting nonce from server...', 'info');
+
+                // Step 1: Get nonce from backend
+                const nonceRes = await fetch('/api/auth/nonce', {
+                    credentials: 'include' // Important for cookies
+                });
+
+                if (!nonceRes.ok) {
+                    throw new Error('Failed to get nonce');
+                }
+
+                const { nonce } = await nonceRes.json();
+                console.log('Nonce received:', nonce);
+
+                showStatus('Opening World App for signature...', 'info');
+
+                // Step 2: Request wallet signature via MiniKit
+                const { commandPayload, finalPayload } = await MiniKit.commandsAsync.walletAuth({
+                    nonce: nonce,
+                    requestId: '0',
+                    expirationTime: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000),
+                    notBefore: new Date(new Date().getTime() - 24 * 60 * 60 * 1000),
+                    statement: 'Sign in to Luna Predict - AI-powered crypto chart analysis'
+                });
+
+                console.log('Command payload:', commandPayload);
+                console.log('Final payload:', finalPayload);
+
+                // Step 3: Check if user signed
+                if (finalPayload.status === 'error') {
+                    throw new Error('User rejected signature request');
+                }
+
+                showStatus('Verifying signature...', 'info');
+
+                // Step 4: Send to backend for verification
+                const loginRes = await fetch('/api/auth/wallet-login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include', // Important for cookies
+                    body: JSON.stringify({
+                        payload: finalPayload,
+                        nonce: nonce
+                    })
+                });
+
+                const loginData = await loginRes.json();
+
+                if (!loginRes.ok || !loginData.isValid) {
+                    throw new Error(loginData.error || 'Login failed');
+                }
+
+                // Step 5: Success!
+                userSession = loginData;
+                showStatus(loginData.message, 'success');
+                displayUserInfo(loginData);
+
+                console.log('Login successful:', loginData);
+
+            } catch (error) {
+                console.error('Login error:', error);
+                showStatus(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Display status messages
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+        }
+
+        // Display user information
+        function displayUserInfo(data) {
+            const userInfoEl = document.getElementById('userInfo');
+            userInfoEl.innerHTML = `
+                <h3>✅ Logged In</h3>
+                <p><strong>Wallet:</strong> <code>${data.walletAddress}</code></p>
+                <p><strong>User ID:</strong> <code>${data.userId}</code></p>
+                <p><strong>New User:</strong> ${data.isNewUser ? 'Yes' : 'No'}</p>
+                <p><strong>Credits:</strong> 0 (Add 10 WLD for 5 predictions)</p>
+            `;
+            userInfoEl.className = 'user-info show';
+
+            // Update button
+            document.getElementById('loginBtn').textContent = 'Logged In ✓';
+            document.getElementById('loginBtn').disabled = true;
+        }
+
+        // Check MiniKit on page load
+        window.addEventListener('load', () => {
+            checkMiniKit();
+
+            // Try to get wallet address if already connected
+            if (window.MiniKit && MiniKit.walletAddress) {
+                console.log('Connected wallet:', MiniKit.walletAddress);
+            }
+        });
+    </script>
+</body>
+</html>

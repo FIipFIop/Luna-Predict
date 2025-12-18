@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm start)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(wc:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nInitial commit: Crypto Chart Analyzer\n\nAI-powered crypto chart analysis tool with:\n- Drag & drop image upload\n- Technical analysis using OpenRouter AI\n- Trading recommendations (LONG/SHORT)\n- Entry, Stop Loss, and Take Profit levels\n- Risk/Reward ratio calculation\n- Clean, minimal Vercel-style UI\n- No database, fully stateless\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(gh repo create:*)",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(git remote remove:*)",
+      "Bash(git commit:*)",
+      "Bash(where:*)",
+      "Bash(node:*)",
+      "Bash(powershell -Command \"Get-Content public/icon-192.png -Encoding Byte -TotalCount 10 | ForEach-Object { ''{0:X2}'' -f $_}\")",
+      "Bash(move generate-icons.js generate-icons.cjs)",
+      "Bash(ren generate-icons.js generate-icons.cjs)",
+      "Bash(npm uninstall:*)",
+      "Bash(ls:*)",
+      "WebFetch(domain:perp-prediction.vercel.app)",
+      "Bash(curl:*)",
+      "Bash(powershell -Command \"(Invoke-WebRequest -Uri ''https://perp-prediction.vercel.app/'' -UseBasicParsing).Content\")",
+      "Bash(git restore:*)",
+      "Bash(claude mcp add:*)",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__apply_migration"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
+}
