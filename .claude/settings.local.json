@@ -29,7 +29,9 @@
       "Bash(git restore:*)",
       "Bash(claude mcp add:*)",
       "mcp__supabase__list_tables",
-      "mcp__supabase__apply_migration"
+      "mcp__supabase__apply_migration",
+      "Bash(vercel --version:*)",
+      "Bash(vercel --prod:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
