@@ -4,24 +4,6 @@
     {
       "source": "/api/:path*",
       "destination": "/server.js"
-    },
-    {
-      "source": "/",
-      "destination": "/server.js"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/miniapp/(.*)",
-      "dest": "/miniapp/$1"
-    },
-    {
-      "src": "/public/(.*)",
-      "dest": "/public/$1"
-    },
-    {
-      "src": "/(.*\\.(js|css|png|jpg|jpeg|gif|svg|ico|webp|json))",
-      "dest": "/public/$1"
     }
   ],
   "headers": [
