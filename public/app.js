@@ -1,88 +1,9 @@
-// Supabase client initialization
-const SUPABASE_URL = 'https://vcawdkjknxsdshmomavn.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjYXdka2prbnhzZHNobW9tYXZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5NjgxMTUsImV4cCI6MjA4MTU0NDExNX0.PqaCUdtUGPvZ9esVxQX1aalpF2eQh-e-gvChxSCZ9yw';
-
-// Load Supabase client from CDN
-const script = document.createElement('script');
-script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-document.head.appendChild(script);
-
-let supabase;
-let currentUser = null;
-let userCredits = 0;
-
-script.onload = () => {
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  checkAuth();
-};
-
-// Telegram WebApp initialization
-const tg = window.Telegram.WebApp;
-tg.ready();
-tg.expand();
-tg.enableClosingConfirmation();
-
-// World ID Configuration
-const WORLD_ID_CONFIG = {
-  app_id: 'app_681a53f34457fbb76319aac9d5258f5c',
-  action: 'login',
-  signal: '', // Optional: can be used to prevent replay attacks
-};
+// OpenRouter API configuration
+const OPENROUTER_API_KEY = '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';
 
 const $ = id => document.getElementById(id);
 
 // DOM elements
-const authModal = $('authModal');
-const authForm = $('authForm');
-const authTitle = $('authTitle');
-const authEmail = $('authEmail');
-const authPassword = $('authPassword');
-const authFullName = $('authFullName');
-const fullNameGroup = $('fullNameGroup');
-const authSubmitBtn = $('authSubmitBtn');
-const authToggleText = $('authToggleText');
-const authToggleLink = $('authToggleLink');
-const authError = $('authError');
-const walletAuthBtn = $('walletAuthBtn');
-
-const paymentModal = $('paymentModal');
-const paymentMethodSelect = $('paymentMethodSelect');
-const selectWldBtn = $('selectWldBtn');
-const selectSolBtn = $('selectSolBtn');
-const paymentStep1 = $('paymentStep1');
-const paymentStep2 = $('paymentStep2');
-const paymentStep3 = $('paymentStep3');
-const backToMethodsBtn = $('backToMethodsBtn');
-const senderWallet = $('senderWallet');
-const initPaymentBtn = $('initPaymentBtn');
-const receiverWallet = $('receiverWallet');
-const exactAmount = $('exactAmount');
-const paymentAmount = $('paymentAmount');
-const sentPaymentBtn = $('sentPaymentBtn');
-const cancelPaymentBtn = $('cancelPaymentBtn');
-const closePaymentBtn = $('closePaymentBtn');
-const paymentTimer = $('paymentTimer');
-const paymentError = $('paymentError');
-const copyWalletBtn = $('copyWalletBtn');
-// WLD payment elements
-const wldPaymentStep1 = $('wldPaymentStep1');
-const wldPaymentStep2 = $('wldPaymentStep2');
-const backToMethodsBtn2 = $('backToMethodsBtn2');
-const wldFromAddress = $('wldFromAddress');
-const wldNetwork = $('wldNetwork');
-const initWldPaymentBtn = $('initWldPaymentBtn');
-const wldReceiverAddress = $('wldReceiverAddress');
-const wldNetworkDisplay = $('wldNetworkDisplay');
-const wldTxHash = $('wldTxHash');
-const verifyWldPaymentBtn = $('verifyWldPaymentBtn');
-const cancelWldPaymentBtn = $('cancelWldPaymentBtn');
-const copyWldAddressBtn = $('copyWldAddressBtn');
-
-const userInfo = $('userInfo');
-const userCreditsEl = $('userCredits');
-const buyCreditsBtn = $('buyCreditsBtn');
-const logoutBtn = $('logoutBtn');
-
 const dropzone = $('dropzone');
 const fileInput = $('fileInput');
 const cameraInput = $('cameraInput');
@@ -103,545 +24,6 @@ const error = $('error');
 let selectedFile = null;
 let detectedTimeframeValue = null;
 let analysisData = null;
-let isLoginMode = true;
-let currentPaymentId = null;
-let paymentVerificationInterval = null;
-
-// Apply Telegram theme
-document.body.style.backgroundColor = tg.themeParams.bg_color || '#000000';
-document.body.style.color = tg.themeParams.text_color || '#ffffff';
-
-// ============= AUTHENTICATION =============
-
-async function checkAuth() {
-  const { data: { session } } = await supabase.auth.getSession();
-
-  if (session) {
-    currentUser = session.user;
-    await loadUserData();
-    showMainApp();
-  } else {
-    showAuthModal();
-  }
-}
-
-async function loadUserData() {
-  try {
-    const response = await fetch('/api/auth/user', {
-      headers: {
-        'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session.access_token}`
-      }
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      userCredits = data.credits;
-      updateUserUI();
-    }
-  } catch (err) {
-    console.error('Error loading user data:', err);
-  }
-}
-
-function showAuthModal() {
-  authModal.classList.add('active');
-}
-
-function hideAuthModal() {
-  authModal.classList.remove('active');
-  authError.textContent = '';
-}
-
-function showMainApp() {
-  hideAuthModal();
-  userInfo.style.display = 'flex';
-}
-
-function updateUserUI() {
-  userCreditsEl.textContent = userCredits;
-}
-
-// Toggle between login and signup
-authToggleLink.addEventListener('click', (e) => {
-  e.preventDefault();
-  isLoginMode = !isLoginMode;
-
-  if (isLoginMode) {
-    authTitle.textContent = 'Login';
-    authSubmitBtn.textContent = 'Login';
-    authToggleText.textContent = "Don't have an account?";
-    authToggleLink.textContent = 'Sign up';
-    fullNameGroup.style.display = 'none';
-  } else {
-    authTitle.textContent = 'Sign Up';
-    authSubmitBtn.textContent = 'Sign Up';
-    authToggleText.textContent = 'Already have an account?';
-    authToggleLink.textContent = 'Login';
-    fullNameGroup.style.display = 'block';
-  }
-
-  authError.textContent = '';
-});
-
-// Auth form submission
-authForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  authError.textContent = '';
-  authSubmitBtn.disabled = true;
-  authSubmitBtn.textContent = isLoginMode ? 'Logging in...' : 'Signing up...';
-
-  try {
-    const endpoint = isLoginMode ? '/api/auth/login' : '/api/auth/signup';
-    const body = {
-      email: authEmail.value,
-      password: authPassword.value
-    };
-
-    if (!isLoginMode) {
-      body.fullName = authFullName.value;
-    }
-
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      // Set session in Supabase client
-      await supabase.auth.setSession({
-        access_token: data.session.access_token,
-        refresh_token: data.session.refresh_token
-      });
-
-      currentUser = data.user;
-      await loadUserData();
-      showMainApp();
-
-      authEmail.value = '';
-      authPassword.value = '';
-      authFullName.value = '';
-    } else {
-      authError.textContent = data.error || 'Authentication failed';
-    }
-  } catch (err) {
-    authError.textContent = 'Network error. Please try again.';
-  } finally {
-    authSubmitBtn.disabled = false;
-    authSubmitBtn.textContent = isLoginMode ? 'Login' : 'Sign Up';
-  }
-});
-
-// Logout
-logoutBtn.addEventListener('click', async () => {
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    await fetch('/api/auth/logout', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${session.access_token}`
-      }
-    });
-
-    await supabase.auth.signOut();
-    currentUser = null;
-    userCredits = 0;
-    userInfo.style.display = 'none';
-    showAuthModal();
-  } catch (err) {
-    console.error('Logout error:', err);
-  }
-});
-
-// World ID Authentication with IDKit
-walletAuthBtn.addEventListener('click', async () => {
-  if (!window.IDKit) {
-    authError.textContent = 'World ID SDK not loaded. Please refresh the page.';
-    return;
-  }
-
-  try {
-    authError.textContent = '';
-    walletAuthBtn.disabled = true;
-    walletAuthBtn.textContent = 'Opening World ID...';
-
-    // Initialize and open IDKit
-    IDKit.init({
-      app_id: WORLD_ID_CONFIG.app_id,
-      action: WORLD_ID_CONFIG.action,
-      signal: WORLD_ID_CONFIG.signal,
-      onSuccess: async (proof) => {
-        try {
-          walletAuthBtn.textContent = 'Verifying...';
-          console.log('World ID proof received:', proof);
-
-          // Send proof to backend for verification
-          const verifyRes = await fetch('/api/auth/world-id-verify', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-              proof: proof,
-              action: WORLD_ID_CONFIG.action,
-              signal: WORLD_ID_CONFIG.signal
-            })
-          });
-
-          const verifyData = await verifyRes.json();
-
-          if (!verifyRes.ok || !verifyData.success) {
-            throw new Error(verifyData.error || 'Verification failed');
-          }
-
-          // Success - reload user data
-          currentUser = { id: verifyData.userId };
-          await loadUserData();
-          showMainApp();
-          walletAuthBtn.textContent = 'Sign in with World ID';
-
-        } catch (error) {
-          console.error('World ID verification error:', error);
-          authError.textContent = error.message || 'Verification failed';
-          walletAuthBtn.textContent = 'Sign in with World ID';
-        } finally {
-          walletAuthBtn.disabled = false;
-        }
-      },
-      onError: (error) => {
-        console.error('World ID error:', error);
-        authError.textContent = error.message || 'World ID verification failed';
-        walletAuthBtn.textContent = 'Sign in with World ID';
-        walletAuthBtn.disabled = false;
-      }
-    });
-
-    // Open the IDKit modal
-    IDKit.open();
-
-  } catch (error) {
-    console.error('World ID init error:', error);
-    authError.textContent = error.message || 'Failed to open World ID';
-    walletAuthBtn.textContent = 'Sign in with World ID';
-    walletAuthBtn.disabled = false;
-  }
-});
-
-// ============= PAYMENT =============
-
-buyCreditsBtn.addEventListener('click', () => {
-  paymentModal.classList.add('active');
-  // Show payment method selector
-  paymentMethodSelect.style.display = 'block';
-  paymentStep1.style.display = 'none';
-  paymentStep2.style.display = 'none';
-  paymentStep3.style.display = 'none';
-  wldPaymentStep1.style.display = 'none';
-  wldPaymentStep2.style.display = 'none';
-  paymentError.textContent = '';
-  senderWallet.value = '';
-  wldFromAddress.value = '';
-  wldTxHash.value = '';
-});
-
-closePaymentBtn.addEventListener('click', () => {
-  paymentModal.classList.remove('active');
-  if (paymentVerificationInterval) {
-    clearInterval(paymentVerificationInterval);
-    paymentVerificationInterval = null;
-  }
-});
-
-cancelPaymentBtn.addEventListener('click', () => {
-  paymentStep1.style.display = 'block';
-  paymentStep2.style.display = 'none';
-  paymentStep3.style.display = 'none';
-  paymentError.textContent = '';
-  if (paymentVerificationInterval) {
-    clearInterval(paymentVerificationInterval);
-    paymentVerificationInterval = null;
-  }
-});
-
-// Payment method selection
-selectWldBtn.addEventListener('click', () => {
-  paymentMethodSelect.style.display = 'none';
-  wldPaymentStep1.style.display = 'block';
-});
-
-selectSolBtn.addEventListener('click', () => {
-  paymentMethodSelect.style.display = 'none';
-  paymentStep1.style.display = 'block';
-});
-
-// Back to payment methods
-backToMethodsBtn.addEventListener('click', () => {
-  paymentStep1.style.display = 'none';
-  paymentMethodSelect.style.display = 'block';
-});
-
-backToMethodsBtn2.addEventListener('click', () => {
-  wldPaymentStep1.style.display = 'none';
-  paymentMethodSelect.style.display = 'block';
-});
-
-// WLD Payment Flow
-let currentWldPaymentId = null;
-
-initWldPaymentBtn.addEventListener('click', async () => {
-  const fromAddr = wldFromAddress.value.trim();
-  const network = wldNetwork.value;
-
-  if (!fromAddr) {
-    paymentError.textContent = 'Please enter your wallet address';
-    return;
-  }
-
-  paymentError.textContent = '';
-  initWldPaymentBtn.disabled = true;
-  initWldPaymentBtn.textContent = 'Initializing...';
-
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    const response = await fetch('/api/payment/worldcoin/init', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify({
-        fromAddress: fromAddr,
-        network: network
-      })
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      currentWldPaymentId = data.paymentId;
-      wldReceiverAddress.textContent = data.toAddress;
-      wldNetworkDisplay.textContent = data.network === 'world-chain' ? 'World Chain' : 'Optimism';
-
-      wldPaymentStep1.style.display = 'none';
-      wldPaymentStep2.style.display = 'block';
-    } else {
-      paymentError.textContent = data.error || 'Payment initialization failed';
-    }
-  } catch (err) {
-    paymentError.textContent = 'Network error. Please try again.';
-  } finally {
-    initWldPaymentBtn.disabled = false;
-    initWldPaymentBtn.textContent = 'Continue';
-  }
-});
-
-cancelWldPaymentBtn.addEventListener('click', () => {
-  wldPaymentStep1.style.display = 'block';
-  wldPaymentStep2.style.display = 'none';
-  paymentError.textContent = '';
-  wldTxHash.value = '';
-});
-
-copyWldAddressBtn.addEventListener('click', () => {
-  const address = wldReceiverAddress.textContent;
-  navigator.clipboard.writeText(address).then(() => {
-    const originalText = copyWldAddressBtn.textContent;
-    copyWldAddressBtn.textContent = 'Copied!';
-    setTimeout(() => {
-      copyWldAddressBtn.textContent = originalText;
-    }, 2000);
-  });
-});
-
-verifyWldPaymentBtn.addEventListener('click', async () => {
-  const txHash = wldTxHash.value.trim();
-
-  if (!txHash) {
-    paymentError.textContent = 'Please enter the transaction hash';
-    return;
-  }
-
-  paymentError.textContent = '';
-  verifyWldPaymentBtn.disabled = true;
-  verifyWldPaymentBtn.textContent = 'Verifying...';
-
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    const response = await fetch('/api/payment/worldcoin/verify', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify({
-        paymentId: currentWldPaymentId,
-        transactionHash: txHash
-      })
-    });
-
-    const data = await response.json();
-
-    if (response.ok && data.status === 'confirmed') {
-      // Payment successful!
-      userCredits += data.credits;
-      updateUserUI();
-
-      paymentModal.classList.remove('active');
-      wldPaymentStep2.style.display = 'none';
-      paymentMethodSelect.style.display = 'block';
-      wldTxHash.value = '';
-
-      alert(`Payment confirmed! ${data.credits} credits added to your account.`);
-    } else if (data.status === 'pending' || data.status === 'processing') {
-      paymentError.textContent = 'Transaction is being processed. Please wait a moment and try again.';
-    } else {
-      paymentError.textContent = data.error || 'Payment verification failed';
-    }
-  } catch (err) {
-    paymentError.textContent = 'Network error. Please try again.';
-  } finally {
-    verifyWldPaymentBtn.disabled = false;
-    verifyWldPaymentBtn.textContent = 'Verify Payment';
-  }
-});
-
-initPaymentBtn.addEventListener('click', async () => {
-  const wallet = senderWallet.value.trim();
-
-  if (!wallet) {
-    paymentError.textContent = 'Please enter your wallet address';
-    return;
-  }
-
-  paymentError.textContent = '';
-  initPaymentBtn.disabled = true;
-  initPaymentBtn.textContent = 'Checking balance...';
-
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    const response = await fetch('/api/payment/init', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify({ senderWallet: wallet })
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      currentPaymentId = data.paymentId;
-      receiverWallet.textContent = data.receiverWallet;
-      exactAmount.textContent = `${data.amount} SOL`;
-      paymentAmount.textContent = `${data.amount} SOL`;
-
-      paymentStep1.style.display = 'none';
-      paymentStep2.style.display = 'block';
-    } else {
-      paymentError.textContent = data.error || data.message || 'Payment initialization failed';
-    }
-  } catch (err) {
-    paymentError.textContent = 'Network error. Please try again.';
-  } finally {
-    initPaymentBtn.disabled = false;
-    initPaymentBtn.textContent = 'Check Balance & Continue';
-  }
-});
-
-copyWalletBtn.addEventListener('click', () => {
-  navigator.clipboard.writeText(receiverWallet.textContent);
-  const originalText = copyWalletBtn.textContent;
-  copyWalletBtn.textContent = 'Copied!';
-  setTimeout(() => {
-    copyWalletBtn.textContent = originalText;
-  }, 2000);
-});
-
-sentPaymentBtn.addEventListener('click', () => {
-  paymentStep2.style.display = 'none';
-  paymentStep3.style.display = 'block';
-  startPaymentVerification();
-});
-
-async function startPaymentVerification() {
-  let timeLeft = 120; // 2 minutes in seconds
-  let checkCount = 0;
-  const maxChecks = 12; // Check every 10 seconds for 2 minutes
-
-  const updateTimer = () => {
-    const minutes = Math.floor(timeLeft / 60);
-    const seconds = timeLeft % 60;
-    paymentTimer.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-    timeLeft--;
-
-    if (timeLeft < 0) {
-      clearInterval(timerInterval);
-      clearInterval(paymentVerificationInterval);
-      paymentError.textContent = 'Payment verification timeout. Please try again.';
-      paymentStep3.style.display = 'none';
-      paymentStep1.style.display = 'block';
-    }
-  };
-
-  const timerInterval = setInterval(updateTimer, 1000);
-  updateTimer();
-
-  paymentVerificationInterval = setInterval(async () => {
-    checkCount++;
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch('/api/payment/verify', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ paymentId: currentPaymentId })
-      });
-
-      const data = await response.json();
-
-      if (data.status === 'verified') {
-        clearInterval(timerInterval);
-        clearInterval(paymentVerificationInterval);
-        paymentVerificationInterval = null;
-
-        // Update credits
-        userCredits += data.credits;
-        updateUserUI();
-
-        // Show success and close modal
-        alert('Payment verified! Credit added to your account.');
-        paymentModal.classList.remove('active');
-        paymentStep3.style.display = 'none';
-        paymentStep1.style.display = 'block';
-      } else if (data.status === 'cancelled' || data.error) {
-        clearInterval(timerInterval);
-        clearInterval(paymentVerificationInterval);
-        paymentVerificationInterval = null;
-        paymentError.textContent = data.error || 'Payment verification failed';
-        paymentStep3.style.display = 'none';
-        paymentStep1.style.display = 'block';
-      }
-    } catch (err) {
-      console.error('Payment verification error:', err);
-    }
-
-    if (checkCount >= maxChecks) {
-      clearInterval(timerInterval);
-      clearInterval(paymentVerificationInterval);
-      paymentVerificationInterval = null;
-      paymentError.textContent = 'Payment verification timeout. Please try again.';
-      paymentStep3.style.display = 'none';
-      paymentStep1.style.display = 'block';
-    }
-  }, 10000); // Check every 10 seconds
-}
 
 // ============= CHART ANALYSIS =============
 
@@ -659,7 +41,6 @@ if (cameraBtn) {
   cameraBtn.addEventListener('click', e => {
     e.stopPropagation();
     cameraInput.click();
-    tg.HapticFeedback.impactOccurred('light');
   });
 }
 
@@ -667,7 +48,6 @@ if (galleryBtn) {
   galleryBtn.addEventListener('click', e => {
     e.stopPropagation();
     fileInput.click();
-    tg.HapticFeedback.impactOccurred('light');
   });
 }
 
@@ -705,8 +85,6 @@ function handleFile(file) {
     if (timeframe.value === 'auto') {
       timeframeConfirm.classList.add('hidden');
     }
-
-    tg.HapticFeedback.impactOccurred('medium');
   };
   reader.readAsDataURL(file);
 }
@@ -723,7 +101,6 @@ removeBtn.addEventListener('click', e => {
   timeframeConfirm.classList.add('hidden');
   results.classList.add('hidden');
   error.classList.add('hidden');
-  tg.HapticFeedback.impactOccurred('light');
 });
 
 timeframe.addEventListener('change', () => {
@@ -745,44 +122,128 @@ changeTimeframeBtn.addEventListener('click', () => {
 analyzeBtn.addEventListener('click', async () => {
   if (!selectedFile) return;
 
-  // Check if user has credits
-  if (userCredits < 1) {
-    showError('You need credits to analyze charts. Click "Buy Credits" to purchase.');
-    return;
-  }
-
-  const formData = new FormData();
-  formData.append('chart', selectedFile);
-  formData.append('timeframe', timeframe.value);
-
   analyzeBtn.disabled = true;
   analyzeBtn.querySelector('.btn-text').textContent = 'Analyzing...';
   analyzeBtn.querySelector('.btn-loader').classList.remove('hidden');
   error.classList.add('hidden');
   results.classList.add('hidden');
 
-  tg.HapticFeedback.impactOccurred('medium');
-
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    const response = await fetch('/api/analyze', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${session.access_token}`
-      },
-      body: formData
-    });
+    // Convert file to base64
+    const reader = new FileReader();
+    reader.readAsDataURL(selectedFile);
 
-    const data = await response.json();
+    reader.onload = async () => {
+      const imageUrl = reader.result;
 
-    if (response.ok) {
-      analysisData = data;
+      // Build AI prompt based on timeframe mode
+      const isAutoDetect = timeframe.value === 'auto';
+      const timeframeText = isAutoDetect
+        ? 'Determine the timeframe from the chart (look for labels, time intervals, or date ranges visible)'
+        : `${timeframe.value} timeframe`;
 
-      // Update credits
-      if (data.creditsRemaining !== undefined) {
-        userCredits = data.creditsRemaining;
-        updateUserUI();
+      const prompt = isAutoDetect
+        ? `Analyze this crypto chart and detect its timeframe. IMPORTANT: This could be a CANDLESTICK chart (TradingView/exchanges) OR a LINE/AREA chart from Phantom wallet or other crypto wallets.
+
+TIMEFRAME DETECTION STRATEGY:
+1. For Phantom wallet charts (smooth line/area): Check top of chart for timeframe buttons/labels (1H, 1D, 1W, 1M, ALL)
+2. For all charts: Look at X-axis time labels and calculate spacing between data points
+3. Date range method: If you see "Jan 1 - Jan 7" = likely 1H/4H/1D depending on point density
+4. Candle spacing: Wide gaps = higher timeframe (1D/1W), tight = lower (1m/5m/15m/1H)
+
+CHART TYPE IDENTIFICATION:
+- Candlestick: Red/green bars with wicks (TradingView, Binance, Coinbase Pro)
+- Line: Smooth colored line (Phantom wallet, Trust Wallet, MetaMask)
+- Area: Filled gradient under line (Phantom wallet default)
+
+ANALYSIS FOR LINE CHARTS (Phantom wallet):
+- Identify trend from line direction and slope
+- Find support/resistance at previous price levels where line bounced
+- Look for breakouts above/below historical levels
+- Consider volume (if visible) at key price points
+
+Respond ONLY with valid JSON: {"timeframe":"1m/5m/15m/30m/1h/4h/1d/1w/1M","timeframeConfidence":"high/medium/low","chartType":"candlestick/line/area","recommendation":"LONG/SHORT","certainty":85,"entryPrice":"$X (desc)","stopLoss":"$X (-X%)","takeProfit":"$X (+X%)","riskRewardRatio":"X:1","report":"Detailed analysis with patterns, trend direction, support/resistance levels, and SL/TP justification"}. Min 2:1 R:R required.`
+        : `Analyze this ${timeframe.value} crypto chart. IMPORTANT: This could be a candlestick chart OR a line/area chart from Phantom wallet.
+
+ANALYSIS APPROACH:
+For CANDLESTICK charts: Use traditional technical analysis (patterns, support/resistance, candle formations)
+For LINE/AREA charts (Phantom wallet): Focus on trend direction, price levels, breakouts, and historical bounces
+
+KEY POINTS FOR PHANTOM WALLET CHARTS:
+- Smooth line = trend is more important than individual candles
+- Support/resistance at previous price levels where line bounced or reversed
+- Breakouts above resistance or below support are strong signals
+- Consider overall trend strength (steep vs gradual slope)
+
+Respond ONLY with valid JSON: {"recommendation":"LONG/SHORT","certainty":85,"entryPrice":"$X (desc)","stopLoss":"$X (-X%)","takeProfit":"$X (+X%)","riskRewardRatio":"X:1","report":"Detailed analysis identifying chart type, trend direction, key support/resistance levels, and trade rationale"}. Min 2:1 R:R required.`;
+
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': window.location.href,
+          'X-Title': 'Crypto Chart Analyzer'
+        },
+        body: JSON.stringify({
+          model: 'nvidia/nemotron-nano-12b-v2-vl:free',
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'image_url', image_url: { url: imageUrl } },
+              { type: 'text', text: prompt }
+            ]
+          }],
+          temperature: 0.7,
+          max_tokens: 1500
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('OpenRouter API error:', response.status, errorText);
+        throw new Error('Failed to analyze chart');
       }
+
+      const apiResponse = await response.json();
+      console.log('OpenRouter API response:', JSON.stringify(apiResponse).substring(0, 200));
+
+      const content = apiResponse.choices?.[0]?.message?.content;
+      if (!content) {
+        console.error('No content in API response:', apiResponse);
+        throw new Error('The AI did not return a valid response. Please try again.');
+      }
+
+      let analysis;
+      try {
+        const jsonMatch = content.match(/```json\n?([\s\S]*?)\n?```/) || content.match(/\{[\s\S]*\}/);
+        analysis = JSON.parse(jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content);
+      } catch (e) {
+        analysis = {
+          recommendation: content.toUpperCase().includes('LONG') ? 'LONG' : 'SHORT',
+          certainty: 75,
+          entryPrice: 'See report',
+          stopLoss: 'See report',
+          takeProfit: 'See report',
+          riskRewardRatio: '2:1',
+          report: content
+        };
+      }
+
+      const data = {
+        recommendation: analysis.recommendation || 'N/A',
+        certainty: analysis.certainty || 0,
+        entryPrice: analysis.entryPrice || 'Not specified',
+        stopLoss: analysis.stopLoss || 'Not specified',
+        takeProfit: analysis.takeProfit || 'Not specified',
+        riskRewardRatio: analysis.riskRewardRatio || 'N/A',
+        report: analysis.report || content,
+        timeframe: analysis.timeframe || timeframe.value,
+        timeframeConfidence: analysis.timeframeConfidence || 'high',
+        chartType: analysis.chartType || 'candlestick'
+      };
+
+      analysisData = data;
 
       if (timeframe.value === 'auto' && data.timeframe) {
         detectedTimeframeValue = data.timeframe;
@@ -791,15 +252,15 @@ analyzeBtn.addEventListener('click', async () => {
       } else {
         showResults(data);
       }
+    };
 
-      tg.HapticFeedback.notificationOccurred('success');
-    } else {
-      showError(data.error || data.message || 'Analysis failed');
-      tg.HapticFeedback.notificationOccurred('error');
-    }
+    reader.onerror = () => {
+      throw new Error('Failed to read image file');
+    };
+
   } catch (err) {
-    showError('Network error. Please try again.');
-    tg.HapticFeedback.notificationOccurred('error');
+    console.error('Analysis error:', err);
+    showError(err.message || 'Network error. Please try again.');
   } finally {
     analyzeBtn.disabled = false;
     analyzeBtn.querySelector('.btn-text').textContent = 'Analyze Chart';

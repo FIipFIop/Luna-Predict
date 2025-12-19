@@ -1,5 +1,5 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
-:root { --bg: var(--tg-theme-bg-color, #000); --fg: var(--tg-theme-text-color, #fff); --gray: var(--tg-theme-hint-color, #888); --border: var(--tg-theme-secondary-bg-color, #333); --accent: var(--tg-theme-button-color, #bd00ff); --accent-text: var(--tg-theme-button-text-color, #fff); }
+:root { --bg: var(--tg-theme-bg-color, #000); --fg: var(--tg-theme-text-color, #fff); --gray: var(--tg-theme-hint-color, #888); --border: var(--tg-theme-secondary-bg-color, #333); --accent: #bd00ff; --accent-text: var(--tg-theme-button-text-color, #fff); }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.6; min-height: 100vh; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
 .container { max-width: 800px; margin: 0 auto; padding: 40px 20px; }
 header { margin-bottom: 60px; }
